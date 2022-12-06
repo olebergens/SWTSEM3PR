@@ -29,24 +29,22 @@ public class PermissionManager {
     }
 
     public void grantPermission(String sessionID, String username, Permission permission) {
-        Set<Permission> userPermList = userPermissions.get(username);
-        if (userPermList == null) {
-            userPermList = new HashSet<>();
-            this.userPermissions.put(username, userPermList);
-        }
+        Set<Permission> userPermList = this.userPermissions.computeIfAbsent(username, k -> new HashSet<>());
         userPermList.add(permission);
-        Set<Permission> sessionPermList = sessionPermissions.get(sessionID);
-        if (sessionPermList == null) {
-            sessionPermList = new HashSet<>();
-            this.sessionPermissions.put(sessionID, sessionPermList);
-        }
+        Set<Permission> sessionPermList = this.sessionPermissions.computeIfAbsent(sessionID, k -> new HashSet<>());
         sessionPermList.add(permission);
     }
 
     public void revokePermission(String sessionID, String username, Permission permission) {
-        Set<Permission> userPermList = userPermissions.get(username);
+        Set<Permission> userPermList = this.userPermissions.get(username);
         if (userPermList != null) userPermList.remove(permission);
-        Set<Permission> sessionPermList = sessionPermissions.get(sessionID);
+        Set<Permission> sessionPermList = this.sessionPermissions.get(sessionID);
         if (sessionPermList != null) sessionPermList.remove(permission);
+    }
+
+    public boolean hasPermission(String sessionID, String username, Permission permission) {
+        Set<Permission> userPermList = this.userPermissions.get(username);
+        if (userPermList != null) return userPermList.contains(permission);
+        return false;
     }
 }
