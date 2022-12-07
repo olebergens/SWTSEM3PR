@@ -8,8 +8,8 @@ import java.util.Set;
 public class PermissionManager {
     private static PermissionManager instance;
 
-    private Map<String, Set<Permission>> userPermissions;
-    private Map<String, Set<Permission>> sessionPermissions;
+    private final Map<String, Set<Permission>> userPermissions;
+    private final Map<String, Set<Permission>> sessionPermissions;
 
     private PermissionManager() {
         this.userPermissions = new HashMap<>();

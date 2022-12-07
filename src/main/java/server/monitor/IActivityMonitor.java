@@ -1,6 +1,6 @@
 package server.monitor;
 
-public interface ActivityMonitor {
+public interface IActivityMonitor {
      void onUserJoin(String sessionID, String username);
      void onUserLeave(String sessionID, String username);
      void onSessionInactive(String sessionID);

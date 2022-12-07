@@ -6,12 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class LoginManager {
-    private DatabaseConnection databaseConnection;
-
-    public LoginManager(DatabaseConnection databaseConnection) {
-        this.databaseConnection = databaseConnection;
-    }
+public record LoginManager(DatabaseConnection databaseConnection) {
 
     public boolean checkLoginCredentials(String username, String password) {
         // SQL-Abfrage für die Überprüfung von Benutzernamen und Passwort erstellen

@@ -1,0 +1,6 @@
+Programmiere die MessagePipe um ->
+    bis jetzt muss ich für jede neue Session einen neuen IMessageListener erstellen
+        soll automatisch erstellt werden
+
+
+Erweitere PackageHandler um weitere Packages
