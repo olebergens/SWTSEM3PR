@@ -7,7 +7,6 @@ import java.util.Set;
 
 public class PermissionManager {
     private static PermissionManager instance;
-
     private final Map<String, Set<Permission>> userPermissions;
     private final Map<String, Set<Permission>> sessionPermissions;
 
@@ -17,8 +16,6 @@ public class PermissionManager {
     }
 
     public enum Permission {
-        SEND_MESSAGE,
-        SEND_FILE,
         KICK_USER,
         BAN_USER
     }

@@ -1,6 +1,6 @@
 package server.manager;
 
-import server.DatabaseConnection;
+import server.database.DatabaseConnection;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

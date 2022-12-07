@@ -3,20 +3,22 @@ package server.packagehandle;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import server.DatabaseConnection;
-import server.User;
-import server.listener.IMessageListener;
+import server.database.DatabaseConnection;
+import server.listener.SessionMessageListener;
+import server.manager.PermissionManager;
+import server.user.User;
 import server.manager.LoginManager;
 import server.pipe.MessagePipe;
 
-import java.io.File;
-import java.sql.ResultSet;
+import java.io.IOException;
+import java.net.Socket;
 
 public class PackageHandler {
 
-    private static MessagePipe messagePipe = MessagePipe.getInstance();
+    private static final MessagePipe MESSAGE_PIPE = MessagePipe.getInstance();
     private static DatabaseConnection databaseConnection;
     private static LoginManager loginManager;
+    private static final PermissionManager PERMISSION_MANAGER = PermissionManager.getInstance();
 
     public PackageHandler(DatabaseConnection databaseConnection, LoginManager loginManager) {
         PackageHandler.databaseConnection = databaseConnection;
@@ -52,18 +54,20 @@ public class PackageHandler {
         return packageData;
     }
 
-    public static String processPackage(PackageData packageData) {
+    public static String processPackage(PackageData packageData, Socket socket) {
         // Verarbeiten des Pakets je nach Typ
         return switch (packageData.type) {
-            case "login" -> processLoginPackage(packageData.data);
+            case "login" -> processLoginPackage(packageData.data, socket);
             case "join" -> processJoinPackage(packageData.data);
             case "leave" -> processLeavePackage(packageData.data);
             case "create" -> processCreatePackage(packageData.data);
+            case "messageToUser" -> processMessageToUserPackage(packageData.data);
+            case "message" -> processMessagePackage(packageData.data);
             default -> createErrorResponse("invalid package type");
         };
     }
 
-    public static String processLoginPackage(JSONObject data) {
+    public static String processLoginPackage(JSONObject data, Socket socket) {
         String response = null;
         assert isValidPackage(data);
         // Verarbeiten der Daten des Login-Pakets
@@ -73,6 +77,7 @@ public class PackageHandler {
             String password = data.getString("password");
             if (loginManager.checkLoginCredentials(username, password)) {
                 // Erstellen einer erfolgreichen Antwort
+                databaseConnection.updateUser(username, password, socket);
                 response = createSuccessResponse();
             } else {
                 response = createErrorResponse("user does not exist");
@@ -96,10 +101,10 @@ public class PackageHandler {
             // Abfragen des Benutzers aus der Datenbank
             User user = loginManager.databaseConnection().getUser(username);
             if (loginManager.checkLoginCredentials(username, password) && user != null) {
-                messagePipe.processMessage(sessionId, username + " joined the session.");
+                MESSAGE_PIPE.processMessage(sessionId, username + " joined the session.");
                 // joinen der Session
                 loginManager.joinSession(username, sessionId);
-                messagePipe.addUser(sessionId, username);
+                MESSAGE_PIPE.addUser(sessionId, username);
                 // Erstellen einer erfolgreichen Antwort
                 response = createSuccessResponse();
             } else {
@@ -127,8 +132,8 @@ public class PackageHandler {
                 String session = loginManager.createSession(username);
                 loginManager.joinSession(username, session);
                 loginManager.joinSession(username, session);
-                messagePipe.addUser(session, username);
-                // messagePipe.addMessageListener(session);
+                MESSAGE_PIPE.addUser(session, username);
+                MESSAGE_PIPE.addMessageListener(session, new SessionMessageListener(session));
                 response = createSuccessResponse();
             } else {
                 response = createErrorResponse("could not create session");
@@ -153,10 +158,51 @@ public class PackageHandler {
             if (loginManager.checkLoginCredentials(username, password) && user != null) {
                 response = createSuccessResponse();
                 loginManager.leaveSession(username);
-                messagePipe.processMessage(sessionId, username + " left the session");
+                MESSAGE_PIPE.processMessage(sessionId, username + " left the session");
             } else {
                 // Erstellen einer fehlerhaften Antwort
                 response = createErrorResponse("cannot leave session");
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return response;
+    }
+
+    public static String processMessageToUserPackage(JSONObject data) {
+        String response = null;
+        assert isValidPackage(data);
+        // Verarbeiten der Daten des Message-Pakets
+        try {
+            // Extrahieren der Daten aus dem Paket
+            String message = data.getString("message");
+            String username = data.getString("username");
+            String toUsername = data.getString("toUsername");
+            String sessionId = data.getString("id");
+            User user = loginManager.databaseConnection().getUser(username);
+            if (user != null) {
+                response = createSuccessResponse();
+                MESSAGE_PIPE.sendMessage(sessionId, toUsername, message);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return response;
+    }
+
+    public static String processMessagePackage(JSONObject data) {
+        String response = null;
+        assert isValidPackage(data);
+        // Verarbeiten der Daten des Message-Pakets
+        try {
+            // Extrahieren der Daten aus dem Paket
+            String message = data.getString("message");
+            String username = data.getString("username");
+            String sessionId = data.getString("id");
+            User user = loginManager.databaseConnection().getUser(username);
+            if (user != null) {
+                response = createSuccessResponse();
+                MESSAGE_PIPE.processMessage(sessionId, message);
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -181,6 +227,14 @@ public class PackageHandler {
         response.put("error", errorMessage);
 
         // Rückgabe der Antwort als JSON-String
+        return response.toString();
+    }
+
+    public static String createWriteMessage(String message) {
+        // Erstellen eines JSON-Objektes für die Antwort
+        JSONObject response = new JSONObject();
+        // Hinzufügen des "message"-Felds zur Antwort
+        response.put("message", message);
         return response.toString();
     }
 

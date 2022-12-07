@@ -1,5 +1,8 @@
 package server.pipe;
 
+import server.Server;
+import server.backend.ServerBackend;
+import server.database.DatabaseConnection;
 import server.listener.IMessageListener;
 import server.monitor.IActivityMonitor;
 
@@ -10,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MessagePipe {
+    public static DatabaseConnection databaseConnection;
     private static MessagePipe instance;
     private final Map<String, IMessageListener> listeners;
     private final Map<String, List<String>> userLists;
@@ -19,6 +23,7 @@ public class MessagePipe {
         this.listeners = new HashMap<>();
         this.userLists = new HashMap<>();
         this.monitors = new HashMap<>();
+        databaseConnection = Server.connection;
     }
 
     public static MessagePipe getInstance() {

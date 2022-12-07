@@ -1,7 +1,9 @@
-package server;
+package server.database;
 
+import server.user.User;
+
+import java.net.Socket;
 import java.sql.*;
-import java.util.Map;
 import java.util.UUID;
 
 public class DatabaseConnection {
@@ -30,11 +32,12 @@ public class DatabaseConnection {
 
     public void createUser(String username, String password) {
         // SQL-Abfrage für das Erstellen eines neuen Benutzers erstellen
-        String sql = "INSERT INTO users (username,password) VALUES (?,?)";
+        String sql = "INSERT INTO users (username,password,socket) VALUES (?,?)";
         try (PreparedStatement statement = this.conn.prepareStatement(sql)){
             // Benutzername und Passwort an die SQL-Abfrage übergeben
             statement.setString(1, username);
             statement.setString(2, password);
+            statement.setString(3, "");
             // Abfrage ausführen
             statement.executeUpdate();
         }catch (SQLException e) {
@@ -45,7 +48,7 @@ public class DatabaseConnection {
 
     public User getUser(String username) {
         // SQL-Abfrage für das Abrufen von Benutzerdaten erstellen
-        String sql = "SELECT * FROM users WHERE username = ?";
+        String sql = "SELECT username, password FROM users WHERE username = ?";
         try (PreparedStatement statement = this.conn.prepareStatement(sql)){
             // Benutzername an die SQL-Abfrage übergeben
             statement.setString(1, username);
@@ -78,6 +81,38 @@ public class DatabaseConnection {
         }catch (SQLException e) {
             // Fehler bei der Ausführung der SQL-Abfrage
             e.printStackTrace();
+        }
+    }
+
+    public void updateUser(String username, String password, Socket socket) {
+        String sql = "UPDATE users SET socket = ? WHERE username = ? AND password = ?";
+        try (PreparedStatement statement = this.conn.prepareStatement(sql)) {
+            statement.setString(1, socket.toString());
+            statement.setString(2, username);
+            statement.setString(3, password);
+            statement.executeUpdate();
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public String getUserSocket(String username) {
+        // SQL-Abfrage für das Abrufen von Benutzerdaten erstellen
+        String sql = "SELECT socket FROM users WHERE username = ?";
+        try (PreparedStatement statement = this.conn.prepareStatement(sql)){
+            // Benutzername an die SQL-Abfrage übergeben
+            statement.setString(1, username);
+            // Abfrage ausführen und Ergebnis abrufen
+            ResultSet result = statement.executeQuery();
+            if (result.next()) {
+                String socket = null;
+                socket = result.getString("socket");
+                return socket;
+            } else return null; // Kein Benutzer mit angegebenen Benutzernamen gefunden
+        }catch (SQLException e) {
+            // Fehler bei der Ausführung der SQL-Abfrage
+            e.printStackTrace();
+            return null;
         }
     }
 

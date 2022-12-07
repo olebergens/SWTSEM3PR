@@ -1,6 +1,7 @@
-package server;
+package server.backend;
 
 import server.manager.LoginManager;
+import server.database.DatabaseConnection;
 
 import java.sql.SQLException;
 
